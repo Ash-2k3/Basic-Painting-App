@@ -18,7 +18,10 @@
          android:layout_width="match_parent"
          android:layout_height="match_parent"
          android:scaleType="centerCrop"
-         android:src="@drawable/brush_image"/>
+         android:src="@drawable/brush_image"
+         android:id="@+id/iv_background_image"
+
+         />
 
 
     <com.example.basicdrawingapp.DrawingView
@@ -26,7 +29,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/drawing_view_background"
-
+        android:backgroundTint="#80FFFFFF"
         />
 
  </FrameLayout>
@@ -118,6 +121,13 @@
 
                />
 
+           <ImageButton
+               android:id="@+id/undo_btn"
+               android:layout_width="50dp"
+               android:layout_height="50dp"
+               android:layout_marginBottom="6dp"
+               android:scaleType="fitXY"
+               android:src="@android:drawable/ic_menu_revert" />
           </LinearLayout>
 
 </LinearLayout>

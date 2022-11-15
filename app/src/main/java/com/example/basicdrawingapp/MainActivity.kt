@@ -26,8 +26,9 @@ class MainActivity : AppCompatActivity() {
 
     var openGalleryLauncher:ActivityResultLauncher<Intent> = registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
         result -> if(result.resultCode == RESULT_OK && result.data!= null){
-
-    }
+         val imageBackground: ImageView = findViewById(R.id.iv_background_image)
+        imageBackground.setImageURI(result.data?.data)
+        }
     }
 
     val requestPermission: ActivityResultLauncher<Array<String>> =
@@ -40,10 +41,9 @@ class MainActivity : AppCompatActivity() {
                 if(isGranted)
                 {
                     Toast.makeText(this,"You can read the storage now",Toast.LENGTH_SHORT).show()
-
                     val pickIntent = Intent(Intent.ACTION_PICK,
                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-
+                       openGalleryLauncher.launch(pickIntent)
 
                 }else{
                     if(permissionName == Manifest.permission.READ_EXTERNAL_STORAGE){
@@ -65,6 +65,11 @@ class MainActivity : AppCompatActivity() {
         mImageButtonCurrentPaint!!.setImageDrawable(
             ContextCompat.getDrawable(this,R.drawable.pallet_selected)
         )
+
+        val ibUndo : ImageButton = findViewById(R.id.undo_btn)
+        ibUndo.setOnClickListener {
+                 drawingView?.onClickUndo()
+        }
 
         val ibBrush :ImageButton = findViewById(R.id.ib_brush)
         ibBrush.setOnClickListener{
