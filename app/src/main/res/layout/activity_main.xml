@@ -8,16 +8,29 @@
     android:orientation="vertical"
     android:gravity="center_horizontal"
     >
+ <FrameLayout
+     android:id="@+id/drawing_view_container"
+     android:layout_width="match_parent"
+     android:layout_height="0dp"
+     android:layout_weight="9"
+     android:padding="3dp">
+     <ImageView
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
+         android:scaleType="centerCrop"
+         android:src="@drawable/brush_image"/>
 
-   <com.example.basicdrawingapp.DrawingView
-       android:id="@+id/drawing_view"
-       android:layout_width="match_parent"
-       android:layout_height="0dp"
-       android:layout_weight="9"
-       android:layout_margin="3dp"
-       android:background="@drawable/drawing_view_background"
 
-/>
+    <com.example.basicdrawingapp.DrawingView
+        android:id="@+id/drawing_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/drawing_view_background"
+
+        />
+
+ </FrameLayout>
+
     <LinearLayout
         android:id="@+id/ll_paint_colours"
          android:layout_weight="0.7"
