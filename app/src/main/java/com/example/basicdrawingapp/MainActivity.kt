@@ -4,27 +4,41 @@ import android.Manifest
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.icu.lang.UCharacter.GraphemeClusterBreak.T
+import android.media.MediaScannerConnection
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.get
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
 
 
     private  var drawingView : DrawingView? = null
     private var mImageButtonCurrentPaint: ImageButton? =null
+    var customProgressDialog : Dialog? = null
 
-    var openGalleryLauncher:ActivityResultLauncher<Intent> = registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
+    var openGalleryLauncher:ActivityResultLauncher<Intent> =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
         result -> if(result.resultCode == RESULT_OK && result.data!= null){
          val imageBackground: ImageView = findViewById(R.id.iv_background_image)
         imageBackground.setImageURI(result.data?.data)
@@ -81,7 +95,25 @@ class MainActivity : AppCompatActivity() {
      requestStorageFunction()
         }
 
+        val ibSave : ImageButton = findViewById(R.id.btn_save)
+        ibSave.setOnClickListener {
+           if(isReadStorageAllowed()){
+               showProgressDialog()
+               lifecycleScope.launch{
+                   val flDrawingView:FrameLayout = findViewById(R.id.drawing_view_container)
 
+                   saveBitmapFile(getBitmapFromView(flDrawingView))
+               }
+           }
+        }
+
+
+    }
+
+    private fun isReadStorageAllowed():Boolean{
+        val result =ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE)
+
+        return result == PackageManager.PERMISSION_GRANTED
     }
 
     private fun requestStorageFunction(){
@@ -90,15 +122,11 @@ class MainActivity : AppCompatActivity() {
         )){
            showRationaleDialog("Kids Drawing App","App requires storage permission to use background images")
         }else{
-           requestPermission.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
-            // Todo write external storage permission
+           requestPermission.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.WRITE_EXTERNAL_STORAGE))
+
         }
 
     }
-
-
-
-
 
     private fun showBrushSizeChooserDialog(){
         val brushDialog = Dialog(this)
@@ -140,8 +168,8 @@ class MainActivity : AppCompatActivity() {
 
         }
     }
-    private fun showRationaleDialog(title:String, message: String)
-    {
+
+    private fun showRationaleDialog(title:String, message: String) {
         val builder = AlertDialog.Builder(this)
         builder.setTitle(title)
             .setMessage(message)
@@ -151,5 +179,81 @@ class MainActivity : AppCompatActivity() {
         builder.create().show()
     }
 
+    private fun getBitmapFromView(view: View) : Bitmap{
+        val returnedBitmap = Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(returnedBitmap)
+        val bgDrawable = view.background
+        if(bgDrawable!=null)
+        {
+            bgDrawable.draw(canvas)
+        }else{
+            canvas.drawColor(Color.WHITE)
+        }
+        view.draw(canvas)
+        return returnedBitmap
+    }
+
+    private suspend fun saveBitmapFile(mBitmap: Bitmap?): String{
+        var result : String = ""
+        withContext(Dispatchers.IO){
+            if (mBitmap != null){
+                try {
+                    val bytes = ByteArrayOutputStream()
+                    mBitmap.compress(Bitmap.CompressFormat.PNG,90,bytes)
+
+                    val f = File(externalCacheDir?.absoluteFile.toString() + File.separator + "KidsDrawingApp_" +
+                    System.currentTimeMillis()/1000 +".png"
+                    )
+
+                    val fo = FileOutputStream(f)
+                    fo.write(bytes.toByteArray())
+                    fo.close()
+
+                    result = f.absolutePath
+                     shareFile(result)
+                    runOnUiThread{
+                        stopProgressDialog()
+                        if (result.isNotEmpty()){
+                            Toast.makeText(this@MainActivity,"File Saved Successfully :$result",Toast.LENGTH_SHORT).show()
+                        }else{
+                            Toast.makeText(this@MainActivity,"Something went while saving the file",Toast.LENGTH_SHORT).show()
+                        }
+
+                    }
+                }
+                catch (e:Exception){
+                    result= ""
+                    e.printStackTrace()
+                }
+
+            }
+        }
+        return result
+    }
+
+    private fun showProgressDialog(){
+        customProgressDialog = Dialog(this)
+        customProgressDialog?.setContentView(R.layout.progress_bar)
+        customProgressDialog?.show()
+    }
+
+    private fun stopProgressDialog(){
+        if(customProgressDialog!=null){
+            customProgressDialog?.dismiss()
+            customProgressDialog = null
+        }
+
+    }
+
+    private fun shareFile(path: String){
+        MediaScannerConnection.scanFile(this, arrayOf(path),null){ path,uri ->
+            val shareIntent = Intent()
+            shareIntent.action = Intent.ACTION_SEND
+            shareIntent.putExtra(Intent.EXTRA_STREAM,uri)
+            shareIntent.type = "image/png"
+            startActivity(Intent.createChooser(shareIntent,"Share File Using"))
+        }
+
+    }
 
 }
